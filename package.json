@@ -1,0 +1,9 @@
+{
+  "name": "userscript",
+  "author": "CoolSpring8",
+  "license": "MIT",
+  "private": true,
+  "devDependencies": {
+    "eslint": "^7.18.0"
+  }
+}
