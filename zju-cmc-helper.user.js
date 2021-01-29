@@ -3,13 +3,14 @@
 // @description  对智云课堂页面的一些功能增强
 // @namespace    https://github.com/CoolSpring8/userscript
 // @supportURL   https://github.com/CoolSpring8/userscript/issues
-// @version      0.1.0
+// @version      0.1.1
 // @author       CoolSpring
+// @license      MIT
 // @match        *://livingroom.cmc.zju.edu.cn/*
 // @grant        none
 // ==/UserScript==
 
-const EXTGRP_NAME = "ZJU-CMC"
+const M3U_EXTGRP_NAME = "ZJU-CMC"
 
 const showLoadedMessage = () => {
   console.log(
@@ -22,15 +23,17 @@ const addToolbar = () => {
   const rawToolbar = document.querySelector(".course-info__header—toolbar")
   const helperToolbar = document.createElement("div")
 
-  const removeMaskButton = document.createElement("button")
-  removeMaskButton.innerText = "去除学号水印"
-  removeMaskButton.onclick = removeMask
+  const removeMaskButton = _createButton("去除学号水印", removeMask)
 
-  const generateM3UButton = document.createElement("button")
-  generateM3UButton.innerText = "生成播放列表"
-  generateM3UButton.onclick = generateM3U
+  const generateM3UButton = _createButton("生成播放列表", generateM3U)
 
-  helperToolbar.append(removeMaskButton, generateM3UButton)
+  const exportMaterialButton = _createButton("导出此次课课件", exportMaterial)
+
+  helperToolbar.append(
+    removeMaskButton,
+    generateM3UButton,
+    exportMaterialButton
+  )
   rawToolbar.prepend(helperToolbar)
 }
 
@@ -54,7 +57,7 @@ const generateM3U = () => {
   let m3u = `#EXTM3U
   
 #PLAYLIST:${courseName}
-#EXTGRP:${EXTGRP_NAME}
+#EXTGRP:${M3U_EXTGRP_NAME}
 #EXTALB:${courseName}
 #EXTART:${teacherName}
   
@@ -74,6 +77,12 @@ ${menuData
   )
 }
 
+const exportMaterial = () => {
+  const sub_id = document.querySelector(".course-info__wrapper").__vue__.sub_id
+  const url = `http://course.cmc.zju.edu.cn/v2/export/download-sub-ppt?&sub_id=${sub_id}`
+  window.open(url)
+}
+
 const _saveTextToFile = (text, filename, blobOptions) => {
   const a = document.createElement("a")
   const file = new Blob([text], blobOptions)
@@ -82,6 +91,13 @@ const _saveTextToFile = (text, filename, blobOptions) => {
   a.download = filename
   a.click()
   URL.revokeObjectURL(file)
+}
+
+const _createButton = (text, fn) => {
+  const button = document.createElement("button")
+  button.innerText = text
+  button.onclick = fn
+  return button
 }
 
 const initHelper = () => {
