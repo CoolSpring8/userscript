@@ -1,7 +1,7 @@
 /* ==UserStyle==
 @name         Material-CC98
 @namespace    github.com/CoolSpring8/userscript
-@version      0.1.0
+@version      0.1.1
 @description  Material Design风格的样式微调～部分代码来自material-ui.com。
 @author       CoolSpring
 @supportURL   https://github.com/CoolSpring8/userscript/issues
@@ -9,8 +9,8 @@
 ==/UserStyle== */
 @-moz-document domain("www.cc98.org") {
   #root {
-    --color-main: rgb(240, 40, 40);
-    --color-main-transparent: rgba(240, 40, 40, 0.8);
+    --color-main: rgb(177, 211, 150);
+    --color-main-transparent: rgba(177, 211, 150, 0.8);
     --color-divider: rgba(0, 0, 0, 0.12);
     --box-shadow-card: 0px 2px 1px -1px rgba(0, 0, 0, 0.2),
       0px 1px 1px 0px rgba(0, 0, 0, 0.14), 0px 1px 3px 0px rgba(0, 0, 0, 0.12);
@@ -229,8 +229,8 @@ url-prefix("https://www.cc98.org/search")
     border-radius: 4px 0 0 4px;
   }
 
-  .userMessage-userName {
-    font-weight: normal;
+  .userMessage-userName, .userMessage-left > div:not(.column) > div:first-child {
+    font-weight: normal !important;
   }
 
   .reply {
