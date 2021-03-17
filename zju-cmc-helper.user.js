@@ -19,7 +19,8 @@ class CmcHelper {
     this.features = [
       { name: "重新加载播放器", func: this.reloadPlayer.bind(this) },
       { name: "新标签页打开当前视频", func: this.openCurrentVideo.bind(this) },
-      { name: "下载本次课课件", func: this.downloadMaterial.bind(this) },
+      { name: "生成字幕", func: this.generateSRT.bind(this) },
+      { name: "下载课件", func: this.downloadMaterial.bind(this) },
       { name: "生成播放列表", func: this.generateM3U.bind(this) },
     ]
   }
@@ -34,10 +35,8 @@ class CmcHelper {
       const playerElem = document.querySelector("#cmcPlayer_container")
 
       if (
-        courseElem === null ||
-        !("__vue__" in courseElem) ||
-        playerElem === null ||
-        !("__vue__" in playerElem) ||
+        !this._isVueReady(courseElem) ||
+        !this._isVueReady(playerElem) ||
         !("CmcMediaPlayer" in window)
       ) {
         requestIdleCallback(_init)
@@ -61,7 +60,7 @@ class CmcHelper {
       rawToolbar.prepend(helperToolbar)
 
       if (IS_REMOVING_MASK) {
-        this.removeMask()
+        this.removeMaskOnce()
       }
 
       this.loaded = true
@@ -88,7 +87,7 @@ class CmcHelper {
     const academicYear = JSON.parse(this.courseVue.liveInfo.information).kkxn
     const semester = JSON.parse(this.courseVue.liveInfo.information).kkxq
 
-    let m3u = `#EXTM3U
+    const m3u = `#EXTM3U
 
 #PLAYLIST:${courseName}
 #EXTGRP:${M3U_EXTGRP_NAME}
@@ -109,6 +108,25 @@ ${menuData
     )
   }
 
+  generateSRT() {
+    const url = this.playerVue.player.playervars.url
+    const filename_without_ext = url.split("/").pop().split(".")[0]
+
+    const data = this.courseVue.videoTransContent
+    const subtitle = data
+      .map(
+        (item, index) => `${index}
+${item.markTime},000 --> ${this._addTime(
+          item.markTime,
+          item.endPlayMs - item.playMs
+        )},000
+${item.zhtext}`
+      )
+      .join("\n\n")
+
+    this._saveTextToFile(subtitle, `${filename_without_ext}.srt`)
+  }
+
   openCurrentVideo() {
     const url = this.playerVue.player.playervars.url
     window.open(url)
@@ -121,13 +139,38 @@ ${menuData
     setTimeout(() => {
       this.playerVue.player.seekPlay(time)
       if (IS_REMOVING_MASK) {
-        this.removeMask()
+        this.removeMaskOnce()
       }
     }, 500)
   }
 
-  removeMask() {
+  removeMaskOnce() {
     this.playerVue.player.setMask({})
+  }
+
+  // there may be some better solutions
+  _addTime(anchor, duration) {
+    let hour = Number(anchor.slice(0, 2))
+    let minute = Number(anchor.slice(3, 5))
+    let second = Number(anchor.slice(6, 8))
+
+    second += duration
+
+    if (second >= 60) {
+      second -= 60
+      minute += 1
+    }
+    if (minute >= 60) {
+      minute -= 60
+      hour += 1
+    }
+
+    if (!this._twoDigitFormat) {
+      this._twoDigitFormat = new Intl.NumberFormat({ minimumIntegerDigits: 2 })
+    }
+    const f = this._twoDigitFormat
+
+    return `${f.format(hour)}:${f.format(minute)}:${f.format(second)}`
   }
 
   _createButton(text, fn) {
@@ -145,6 +188,10 @@ ${menuData
     a.click()
   }
 
+  _isVueReady(elem) {
+    return elem !== null && "__vue__" in elem
+  }
+
   _saveTextToFile(text, filename, blobOptions) {
     const file = new Blob([text], blobOptions)
     const url = URL.createObjectURL(file)
@@ -153,6 +200,6 @@ ${menuData
   }
 }
 
-let cmcHelper = new CmcHelper()
+const cmcHelper = new CmcHelper()
 cmcHelper.init()
 window.cmcHelper = cmcHelper
