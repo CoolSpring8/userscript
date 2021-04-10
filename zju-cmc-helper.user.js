@@ -3,15 +3,27 @@
 // @description  对智云课堂页面的一些功能增强
 // @namespace    https://github.com/CoolSpring8/userscript
 // @supportURL   https://github.com/CoolSpring8/userscript/issues
-// @version      0.2.1
+// @version      0.2.2
 // @author       CoolSpring
 // @license      MIT
 // @match        *://livingroom.cmc.zju.edu.cn/*
 // @grant        none
+// @run-at       document-end
 // ==/UserScript==
 
 const IS_REMOVING_MASK = true
 const M3U_EXTGRP_NAME = "ZJU-CMC"
+
+let querySelector = document.querySelector.bind(document)
+let myWindow = window
+
+try {
+  querySelector = window.wrappedJSObject.document.querySelector.bind(document)
+  myWindow = window.wrappedJSObject
+  console.log("[CmcHelper] using wrappedJSObject")
+} catch (e) {
+  console.log("[CmcHelper] using normal window")
+}
 
 class CmcHelper {
   constructor() {
@@ -31,13 +43,13 @@ class CmcHelper {
         return
       }
 
-      const courseElem = document.querySelector(".course-info__wrapper")
-      const playerElem = document.querySelector("#cmcPlayer_container")
+      const courseElem = querySelector(".course-info__wrapper")
+      const playerElem = querySelector("#cmcPlayer_container")
 
       if (
         !this._isVueReady(courseElem) ||
         !this._isVueReady(playerElem) ||
-        !("CmcMediaPlayer" in window)
+        !("CmcMediaPlayer" in myWindow)
       ) {
         requestIdleCallback(_init)
         return
@@ -51,7 +63,7 @@ class CmcHelper {
         return
       }
 
-      const rawToolbar = document.querySelector(".course-info__header—toolbar")
+      const rawToolbar = querySelector(".course-info__header—toolbar")
       const helperToolbar = document.createElement("div")
       for (const { name, func } of this.features) {
         helperToolbar.append(this._createButton(name, func))
@@ -67,7 +79,7 @@ class CmcHelper {
 
       console.log(
         // eslint-disable-next-line no-undef
-        `${GM.info.script.name} v${GM.info.script.version} has been successfully loaded.`
+        `[CmcHelper] ${GM.info.script.name} v${GM.info.script.version} has been successfully loaded.`
       )
     }
 
@@ -83,7 +95,8 @@ class CmcHelper {
   generateM3U() {
     const courseName = this.courseVue.courseName
     const teacherName = this.courseVue.teacherName
-    const menuData = this.courseVue.menuData
+    // FIXME: a workaround for "Error: Permission denied to access object" in Firefox + Greasemonkey env
+    const menuData = [...this.courseVue.menuData]
     const academicYear = JSON.parse(this.courseVue.liveInfo.information).kkxn
     const semester = JSON.parse(this.courseVue.liveInfo.information).kkxq
 
@@ -112,7 +125,8 @@ ${menuData
     const url = this.playerVue.player.playervars.url
     const filename_without_ext = url.split("/").pop().split(".")[0]
 
-    const data = this.courseVue.videoTransContent
+    // FIXME: a workaround for "Error: Permission denied to access object" in Firefox + Greasemonkey env
+    const data = [...this.courseVue.videoTransContent]
     const subtitle = data
       .map(
         (item, index) => `${index}
@@ -202,4 +216,5 @@ ${item.zhtext}`
 
 const cmcHelper = new CmcHelper()
 cmcHelper.init()
-window.cmcHelper = cmcHelper
+// For debugging purposes
+myWindow.cmcHelper = cmcHelper
