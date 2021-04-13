@@ -14,16 +14,10 @@
 const IS_REMOVING_MASK = true
 const M3U_EXTGRP_NAME = "ZJU-CMC"
 
-let querySelector = document.querySelector.bind(document)
-let myWindow = window
-
-try {
-  querySelector = window.wrappedJSObject.document.querySelector.bind(document)
-  myWindow = window.wrappedJSObject
-  console.log("[CmcHelper] using wrappedJSObject")
-} catch (e) {
-  console.log("[CmcHelper] using normal window")
-}
+const querySelector = (
+  window.wrappedJSObject.document || document
+).querySelector.bind(document)
+const myWindow = window.wrappedJSObject || window
 
 class CmcHelper {
   constructor() {
