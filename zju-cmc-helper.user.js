@@ -23,11 +23,31 @@ class CmcHelper {
   constructor() {
     this.loaded = false
     this.features = [
-      { name: "重新加载播放器", func: this.reloadPlayer.bind(this) },
-      { name: "新标签页打开当前视频", func: this.openCurrentVideo.bind(this) },
-      { name: "生成字幕", func: this.generateSRT.bind(this) },
-      { name: "下载课件", func: this.downloadMaterial.bind(this) },
-      { name: "生成播放列表", func: this.generateM3U.bind(this) },
+      {
+        name: "重新加载播放器",
+        func: this.reloadPlayer.bind(this),
+        description: "卡住了？不用刷新，点这个",
+      },
+      {
+        name: "新标签页打开当前视频",
+        func: this.openCurrentVideo.bind(this),
+        description: "更快速纯粹的播放体验。目前仅适用于回放",
+      },
+      {
+        name: "生成字幕",
+        func: this.generateSRT.bind(this),
+        description: "可供本地播放器使用。不太靠谱的样子",
+      },
+      {
+        name: "下载课件",
+        func: this.downloadMaterial.bind(this),
+        description: "包含截图和语音识别结果的文档",
+      },
+      {
+        name: "生成播放列表",
+        func: this.generateM3U.bind(this),
+        description: "可以在本地播放器中使用的m3u文件。也许期末很实用",
+      },
     ]
   }
 
@@ -59,8 +79,8 @@ class CmcHelper {
 
       const rawToolbar = querySelector(".course-info__header—toolbar")
       const helperToolbar = document.createElement("div")
-      for (const { name, func } of this.features) {
-        helperToolbar.append(this._createButton(name, func))
+      for (const { name, func, description } of this.features) {
+        helperToolbar.append(this._createButton(name, func, description))
       }
       rawToolbar.style.alignItems = "center"
       rawToolbar.prepend(helperToolbar)
@@ -181,10 +201,11 @@ ${item.zhtext}`
     return `${f.format(hour)}:${f.format(minute)}:${f.format(second)}`
   }
 
-  _createButton(text, fn) {
+  _createButton(text, fn, title) {
     const button = document.createElement("button")
     button.innerText = text
     button.onclick = fn
+    button.title = title
     button.style.margin = "1.5px"
     return button
   }
