@@ -3,7 +3,7 @@
 // @description  对智云课堂页面的一些功能增强
 // @namespace    https://github.com/CoolSpring8/userscript
 // @supportURL   https://github.com/CoolSpring8/userscript/issues
-// @version      0.2.3
+// @version      0.2.4
 // @author       CoolSpring
 // @license      MIT
 // @match        *://livingroom.cmc.zju.edu.cn/*
@@ -12,6 +12,7 @@
 // ==/UserScript==
 
 const IS_REMOVING_MASK = true
+const ENABLE_SWITCH_PPT = true
 const M3U_EXTGRP_NAME = "ZJU-CMC"
 
 const querySelector = (
@@ -89,6 +90,10 @@ class CmcHelper {
         this.removeMaskOnce()
       }
 
+      if (ENABLE_SWITCH_PPT) {
+        this.enableSwitchPPT()
+      }
+
       this.loaded = true
 
       console.log(
@@ -104,6 +109,42 @@ class CmcHelper {
     const sub_id = this.courseVue.sub_id
     const url = `http://course.cmc.zju.edu.cn/v2/export/download-sub-ppt?&sub_id=${sub_id}`
     window.open(url)
+  }
+
+  enableSwitchPPT() {
+    const _init = () => {
+      this.pptVue = querySelector(".ppt-wrapper").__vue__
+
+      const pageElem = querySelector(".ppt-pagination-item > span:first-child")
+      pageElem.contentEditable = true
+
+      // 防止输入框内出现换行
+      pageElem.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") {
+          e.preventDefault()
+          e.target.blur()
+        }
+      })
+
+      pageElem.addEventListener("input", (e) => {
+        this.pptVue.setPPTpage(e.target.textContent)
+      })
+    }
+
+    // 因为每次大小窗口切换时部分页面元素都会被重新创建，所以需要再次修改
+    const observer = new MutationObserver((mutations) => {
+      for (const m of mutations) {
+        if (
+          m.type === "childList" &&
+          Array.from(m.addedNodes).filter((n) => n.className === "ppt-wrapper")
+            .length !== 0
+        ) {
+          _init()
+        }
+      }
+    })
+
+    observer.observe(querySelector(".course-info__main"), { childList: true })
   }
 
   generateM3U() {
