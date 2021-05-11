@@ -3,7 +3,7 @@
 // @description  对智云课堂页面的一些功能增强
 // @namespace    https://github.com/CoolSpring8/userscript
 // @supportURL   https://github.com/CoolSpring8/userscript/issues
-// @version      0.2.4
+// @version      0.2.5
 // @author       CoolSpring
 // @license      MIT
 // @match        *://livingroom.cmc.zju.edu.cn/*
@@ -27,7 +27,7 @@ class CmcHelper {
       {
         name: "重新加载播放器",
         func: this.reloadPlayer.bind(this),
-        description: "卡住了？不用刷新，点这个",
+        description: "播放卡住了点这个",
       },
       {
         name: "新标签页打开当前视频",
@@ -126,7 +126,7 @@ class CmcHelper {
         }
       })
 
-      pageElem.addEventListener("input", (e) => {
+      pageElem.addEventListener("blur", (e) => {
         this.pptVue.setPPTpage(e.target.textContent)
       })
     }
