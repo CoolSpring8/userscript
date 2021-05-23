@@ -3,7 +3,7 @@
 // @description  对智云课堂页面的一些功能增强
 // @namespace    https://github.com/CoolSpring8/userscript
 // @supportURL   https://github.com/CoolSpring8/userscript/issues
-// @version      0.2.6
+// @version      0.3.0
 // @author       CoolSpring
 // @license      MIT
 // @match        *://livingroom.cmc.zju.edu.cn/*
@@ -134,6 +134,58 @@ class CmcHelper {
 
       // feat: 避免白色背景PPT切换页码时出现闪烁
       querySelector("#ppt_canvas").getContext("2d").clearRect = () => {}
+
+      // feat: 允许直播时不自动跳转到PPT最新一页
+      const t = document.createElement("div")
+      t.className = "ppt-thumbtack"
+      t.title = "直播时不自动跳转到PPT最新一页"
+      t.style.display = "flex"
+      t.style.cursor = "pointer"
+      t.style.marginRight = "20px"
+
+      // icons from tabler-icons.io, licensed under MIT
+      // https://github.com/tabler/tabler-icons/blob/master/LICENSE
+      const iconPinned = `<svg xmlns="http://www.w3.org/2000/svg" id="ppt-pinned" class="icon icon-tabler icon-tabler-pinned" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round" display="none">
+          <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+          <path d="M9 4v6l-2 4v2h10v-2l-2 -4v-6"></path>
+          <line x1="12" y1="16" x2="12" y2="21"></line>
+          <line x1="8" y1="4" x2="16" y2="4"></line>
+       </svg>`
+
+      const iconPinnedOff = `<svg xmlns="http://www.w3.org/2000/svg" id="ppt-pinned-off" class="icon icon-tabler icon-tabler-pinned-off" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+   <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+   <line x1="3" y1="3" x2="21" y2="21"></line>
+   <path d="M15 4.5l-3.249 3.249m-2.57 1.433l-2.181 .818l-1.5 1.5l7 7l1.5 -1.5l.82 -2.186m1.43 -2.563l3.25 -3.251"></path>
+   <line x1="9" y1="15" x2="4.5" y2="19.5"></line>
+   <line x1="14.5" y1="4" x2="20" y2="9.5"></line>
+</svg>`
+
+      t.insertAdjacentHTML("afterbegin", iconPinned)
+      t.insertAdjacentHTML("afterbegin", iconPinnedOff)
+
+      t.addEventListener("click", (e) => {
+        const q = e.currentTarget.querySelector.bind(e.currentTarget)
+
+        if (!this.pptPinned) {
+          this.__initCanvas = this.pptVue.initCanvas
+          this.pptVue.initCanvas = (type) => {
+            if (type !== "latest") {
+              this.__initCanvas(type)
+            }
+          }
+          this.pptPinned = true
+          q("#ppt-pinned-off").setAttribute("display", "none")
+          q("#ppt-pinned").removeAttribute("display")
+          return
+        }
+
+        this.pptVue.initCanvas = this.__initCanvas
+        this.pptPinned = false
+        q("#ppt-pinned").setAttribute("display", "none")
+        q("#ppt-pinned-off").removeAttribute("display")
+      })
+
+      querySelector(".ppt-switch-button").prepend(t)
     }
 
     // 因为每次大小窗口切换时部分页面元素都会被重新创建，所以需要再次修改
