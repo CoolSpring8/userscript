@@ -12,7 +12,7 @@
 // ==/UserScript==
 
 const IS_REMOVING_MASK = true
-const ENABLE_SWITCH_PPT = true
+const ENABLE_ENHANCE_PPT = true
 const M3U_EXTGRP_NAME = "ZJU-CMC"
 
 const querySelector = (
@@ -91,8 +91,8 @@ class CmcHelper {
         this.removeMaskOnce()
       }
 
-      if (ENABLE_SWITCH_PPT) {
-        this.enableSwitchPPT()
+      if (ENABLE_ENHANCE_PPT) {
+        this.enablePPTEnhance()
       }
 
       this.loaded = true
@@ -112,10 +112,11 @@ class CmcHelper {
     window.open(url)
   }
 
-  enableSwitchPPT() {
+  enablePPTEnhance() {
     const _init = () => {
       this.pptVue = querySelector(".ppt-wrapper").__vue__
 
+      // feat: 允许PPT直接跳转到特定页码
       const pageElem = querySelector(".ppt-pagination-item > span:first-child")
       pageElem.contentEditable = true
 
@@ -123,13 +124,16 @@ class CmcHelper {
       pageElem.addEventListener("keydown", (e) => {
         if (e.key === "Enter") {
           e.preventDefault()
-          e.target.blur()
+          e.currentTarget.blur()
         }
       })
 
       pageElem.addEventListener("blur", (e) => {
-        this.pptVue.setPPTpage(Number(e.target.textContent))
+        this.pptVue.setPPTpage(Number(e.currentTarget.textContent))
       })
+
+      // feat: 避免白色背景PPT切换页码时出现闪烁
+      querySelector("#ppt_canvas").getContext("2d").clearRect = () => {}
     }
 
     // 因为每次大小窗口切换时部分页面元素都会被重新创建，所以需要再次修改
