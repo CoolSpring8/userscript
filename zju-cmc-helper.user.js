@@ -114,7 +114,7 @@ class CmcHelper {
 
   enablePPTEnhance() {
     const _init = () => {
-      this.pptVue = querySelector(".ppt-wrapper").__vue__
+      this.pptVue = this.pptVue || querySelector(".ppt-wrapper").__vue__
 
       // feat: 允许PPT直接跳转到特定页码
       const pageElem = querySelector(".ppt-pagination-item > span:first-child")
@@ -250,9 +250,8 @@ ${item.zhtext}`
       hour += 1
     }
 
-    if (!this._twoDigitFormat) {
-      this._twoDigitFormat = new Intl.NumberFormat({ minimumIntegerDigits: 2 })
-    }
+    this._twoDigitFormat =
+      this._twoDigitFormat || new Intl.NumberFormat({ minimumIntegerDigits: 2 })
     const f = this._twoDigitFormat
 
     return `${f.format(hour)}:${f.format(minute)}:${f.format(second)}`
