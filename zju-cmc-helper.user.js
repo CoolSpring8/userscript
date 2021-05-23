@@ -30,9 +30,9 @@ class CmcHelper {
         description: "播放卡住了点这个",
       },
       {
-        name: "新标签页打开当前视频",
-        func: this.openCurrentVideo.bind(this),
-        description: "更快速纯粹的播放体验。目前仅适用于回放",
+        name: "获取当前视频地址",
+        func: this.getCurrentVideoURL.bind(this),
+        description: "回放和直播中均可用",
       },
       {
         name: "生成字幕",
@@ -196,9 +196,20 @@ ${item.zhtext}`
     this._saveTextToFile(subtitle, `${filename_without_ext}.srt`)
   }
 
-  openCurrentVideo() {
-    const url = this.playerVue.player.playervars.url
-    window.open(url)
+  getCurrentVideoURL() {
+    if (this.playerVue.liveType === "live") {
+      // may be changed to `multi` someday
+      const sources = JSON.parse(
+        cmcHelper.playerVue.liveUrl.replace("mutli-rate: ", "")
+      )
+      prompt(
+        "请复制到支持HLS的播放器（例如MPC-HC、PotPlayer、mpv）中使用",
+        sources[0].url
+      )
+      return
+    }
+    const url = querySelector("#cmc_player_video").src
+    prompt("已选中，请自行复制到剪贴板", url)
   }
 
   reloadPlayer() {
