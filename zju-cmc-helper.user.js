@@ -83,7 +83,8 @@ class CmcHelper {
       for (const { name, func, description } of this.features) {
         helperToolbar.append(this._createButton(name, func, description))
       }
-      rawToolbar.style.alignItems = "center"
+      helperToolbar.style.display = "flex"
+      helperToolbar.style.marginRight = "1.5px"
       rawToolbar.prepend(helperToolbar)
 
       if (IS_REMOVING_MASK) {
@@ -256,9 +257,9 @@ ${item.zhtext}`
   _createButton(text, fn, title) {
     const button = document.createElement("button")
     button.innerText = text
-    button.onclick = fn
     button.title = title
     button.style.margin = "1.5px"
+    button.addEventListener("click", fn)
     return button
   }
 
