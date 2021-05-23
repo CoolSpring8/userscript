@@ -73,7 +73,7 @@ class CmcHelper {
       this.courseVue = courseElem.__vue__
       this.playerVue = playerElem.__vue__
 
-      if (!("player" in this.playerVue)) {
+      if (!("player" in this.playerVue && "setMask" in this.playerVue.player)) {
         requestIdleCallback(_init)
         return
       }
