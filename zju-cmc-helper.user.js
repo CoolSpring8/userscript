@@ -3,7 +3,7 @@
 // @description  对智云课堂页面的一些功能增强
 // @namespace    https://github.com/CoolSpring8/userscript
 // @supportURL   https://github.com/CoolSpring8/userscript/issues
-// @version      0.3.0
+// @version      0.3.1
 // @author       CoolSpring
 // @license      MIT
 // @match        *://livingroom.cmc.zju.edu.cn/*
@@ -94,6 +94,8 @@ class CmcHelper {
       if (ENABLE_ENHANCE_PPT) {
         this.enablePPTEnhance()
       }
+
+      this.enableSpeechEnhance()
 
       this.loaded = true
 
@@ -202,6 +204,59 @@ class CmcHelper {
     })
 
     observer.observe(querySelector(".course-info__main"), { childList: true })
+  }
+
+  enableSpeechEnhance() {
+    const scopeId = this.courseVue.$options._scopeId
+    const preventedTag = "data-cmchelper-prevented"
+
+    const d = document.createElement("div")
+    d.setAttribute(scopeId, "") // for style
+    d.setAttribute(preventedTag, "false")
+    d.className = "choose-item-info"
+
+    const s = document.createElement("span")
+    s.setAttribute(scopeId, "")
+    s.innerText = "阻止滚动"
+    s.innerHTML += " " // align with other switches
+
+    const i = document.createElement("i")
+    i.setAttribute(scopeId, "")
+    i.className = "el-icon-check"
+    i.style.display = "none"
+
+    d.append(s, i)
+
+    d.addEventListener("click", (e) => {
+      const wrap = this.courseVue.$refs.spokenLanguageScrollbar.wrap
+      const st = Object.getOwnPropertyDescriptor(Element.prototype, "scrollTop")
+
+      if (e.currentTarget.getAttribute(preventedTag) === "false") {
+        Object.defineProperty(wrap, "scrollTop", {
+          get: function () {
+            return st.get.apply(this, arguments)
+          },
+          set: function () {},
+          configurable: true,
+        })
+        e.currentTarget.setAttribute(preventedTag, "true")
+        i.style.removeProperty("display")
+        return
+      }
+      Object.defineProperty(wrap, "scrollTop", {
+        get: function () {
+          return st.get.apply(this, arguments)
+        },
+        set: function () {
+          st.set.apply(this, arguments)
+        },
+        configurable: true,
+      })
+      e.currentTarget.setAttribute("data-cmchelper-prevented", "false")
+      i.style.display = "none"
+    })
+
+    querySelector(".choose-item").prepend(d)
   }
 
   generateM3U() {
