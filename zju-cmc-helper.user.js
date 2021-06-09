@@ -3,7 +3,7 @@
 // @description  对智云课堂页面的一些功能增强
 // @namespace    https://github.com/CoolSpring8/userscript
 // @supportURL   https://github.com/CoolSpring8/userscript/issues
-// @version      0.3.1
+// @version      0.3.2
 // @author       CoolSpring
 // @license      MIT
 // @match        *://livingroom.cmc.zju.edu.cn/*
@@ -73,7 +73,7 @@ class CmcHelper {
       this.courseVue = courseElem.__vue__
       this.playerVue = playerElem.__vue__
 
-      if (!("player" in this.playerVue && "setMask" in this.playerVue.player)) {
+      if (!(this.playerVue.player && "setMask" in this.playerVue.player)) {
         requestIdleCallback(_init)
         return
       }
