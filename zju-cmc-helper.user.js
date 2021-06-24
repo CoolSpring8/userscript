@@ -3,7 +3,7 @@
 // @description  对智云课堂页面的一些功能增强
 // @namespace    https://github.com/CoolSpring8/userscript
 // @supportURL   https://github.com/CoolSpring8/userscript/issues
-// @version      0.3.2
+// @version      0.3.3
 // @author       CoolSpring
 // @license      MIT
 // @match        *://livingroom.cmc.zju.edu.cn/*
@@ -122,11 +122,29 @@ class CmcHelper {
       const pageElem = querySelector(".ppt-pagination-item > span:first-child")
       pageElem.contentEditable = true
 
+      querySelector(".ppt-pagination-item").style.cursor = "default"
+      pageElem.style.cursor = "text"
+      pageElem.style.border = "0.6px solid #999"
+      pageElem.style.borderRadius = "3px"
+      pageElem.style.padding = "3.5px"
+
+      pageElem.addEventListener("mouseover", (e) => {
+        e.currentTarget.style.borderColor = "#b6b6b6"
+      })
+
+      pageElem.addEventListener("mouseout", (e) => {
+        e.currentTarget.style.borderColor = "#999"
+      })
+
       // 防止输入框内出现换行
       pageElem.addEventListener("keydown", (e) => {
         if (e.key === "Enter") {
           e.preventDefault()
           e.currentTarget.blur()
+        }
+        // wordaround: 如果把内容删空，可能会导致此处数字不再与实际同步
+        if (e.key === "Backspace" && e.currentTarget.textContent.length === 1) {
+          e.preventDefault()
         }
       })
 
