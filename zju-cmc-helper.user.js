@@ -3,10 +3,11 @@
 // @description  对智云课堂页面的一些功能增强
 // @namespace    https://github.com/CoolSpring8/userscript
 // @supportURL   https://github.com/CoolSpring8/userscript/issues
-// @version      0.3.3
+// @version      0.4.0
 // @author       CoolSpring
 // @license      MIT
 // @match        *://livingroom.cmc.zju.edu.cn/*
+// @match        *://classroom.zju.edu.cn/*
 // @grant        none
 // @run-at       document-end
 // ==/UserScript==
@@ -26,26 +27,31 @@ class CmcHelper {
     this.features = [
       {
         name: "重新加载播放器",
+        className: "cmc-helper-reload-player",
         func: this.reloadPlayer.bind(this),
         description: "播放卡住了点这个",
       },
       {
         name: "获取当前视频地址",
+        className: "cmc-helper-get-current-video-url",
         func: this.getCurrentVideoURL.bind(this),
         description: "回放和直播中均可用",
       },
       {
         name: "生成字幕",
+        className: "cmc-helper-generate-srt",
         func: this.generateSRT.bind(this),
         description: "可供本地播放器使用。不太靠谱的样子",
       },
       {
         name: "下载课件",
+        className: "cmc-helper-download-material",
         func: this.downloadMaterial.bind(this),
         description: "包含截图和语音识别结果的文档",
       },
       {
         name: "生成播放列表",
+        className: "cmc-helper-generate-m3u",
         func: this.generateM3U.bind(this),
         description: "可以在本地播放器中使用的m3u文件。也许期末很实用",
       },
@@ -78,13 +84,23 @@ class CmcHelper {
         return
       }
 
-      const rawToolbar = querySelector(".course-info__header—toolbar")
       const helperToolbar = document.createElement("div")
-      for (const { name, func, description } of this.features) {
-        helperToolbar.append(this._createButton(name, func, description))
+      for (const { name, className, func, description } of this.features) {
+        helperToolbar.append(
+          this._createButton(name, className, func, description)
+        )
       }
       helperToolbar.style.display = "flex"
       helperToolbar.style.marginRight = "1.5px"
+
+      // 临时提示 start
+      // 目前视频所在CDN开启了鉴权，但只有当次课的视频地址带有auth_key
+      // https://help.aliyun.com/document_detail/85113.htm
+      helperToolbar.children[4].disabled = true
+      helperToolbar.children[4].title = "由于智云课堂更新，暂不可用"
+      // 临时提示 end
+
+      const rawToolbar = querySelector(".course-info__header—toolbar")
       rawToolbar.prepend(helperToolbar)
 
       if (IS_REMOVING_MASK) {
@@ -109,9 +125,18 @@ class CmcHelper {
   }
 
   downloadMaterial() {
-    const sub_id = this.courseVue.sub_id
-    const url = `http://course.cmc.zju.edu.cn/v2/export/download-sub-ppt?&sub_id=${sub_id}`
-    window.open(url)
+    const info = JSON.parse(this.courseVue.liveInfo.sub_content).download
+      .ppt_trans
+
+    const filename = info.file_name
+    // 原地址不可用
+    // 可能是暂时的
+    const url = info.path_name.replace(
+      "yjsource.cmc.zju.edu.cn/",
+      "yjapi.cmc.zju.edu.cn/sourceapi/"
+    )
+
+    this._downloadSmallCrossOriginFile(url, filename)
   }
 
   enablePPTEnhance() {
@@ -136,14 +161,18 @@ class CmcHelper {
         e.currentTarget.style.borderColor = "#999"
       })
 
-      // 防止输入框内出现换行
       pageElem.addEventListener("keydown", (e) => {
         if (e.key === "Enter") {
+          // 防止输入框内出现换行
           e.preventDefault()
           e.currentTarget.blur()
         }
-        // wordaround: 如果把内容删空，可能会导致此处数字不再与实际同步
-        if (e.key === "Backspace" && e.currentTarget.textContent.length === 1) {
+        // workaround: 如果把内容删空，可能会导致此处数字不再同步，原因未知
+        // 然而目前仍然可以通过剪切等方式删空
+        if (
+          (e.key === "Backspace" || e.key === "Delete") &&
+          e.currentTarget.textContent.length === 1
+        ) {
           e.preventDefault()
         }
       })
@@ -155,10 +184,10 @@ class CmcHelper {
       // feat: 避免白色背景PPT切换页码时出现闪烁
       querySelector("#ppt_canvas").getContext("2d").clearRect = () => {}
 
-      // feat: 允许直播时不自动跳转到PPT最新一页
+      // feat: 允许禁用PPT跟随
       const t = document.createElement("div")
       t.className = "ppt-thumbtack"
-      t.title = "直播时不自动跳转到PPT最新一页"
+      t.title = "不自动跳转到PPT最新一页"
       t.style.display = "flex"
       t.style.cursor = "pointer"
       t.style.marginRight = "20px"
@@ -187,12 +216,18 @@ class CmcHelper {
         const q = e.currentTarget.querySelector.bind(e.currentTarget)
 
         if (!this.pptPinned) {
+          // 直播
           this.__initCanvas = this.pptVue.initCanvas
           this.pptVue.initCanvas = (type) => {
             if (type !== "latest") {
               this.__initCanvas(type)
             }
           }
+
+          // 回放
+          this.__computedPPTIndex = this.courseVue.computedPPTIndex
+          this.courseVue.computedPPTIndex = () => {}
+
           this.pptPinned = true
           q("#ppt-pinned-off").setAttribute("display", "none")
           q("#ppt-pinned").removeAttribute("display")
@@ -200,6 +235,7 @@ class CmcHelper {
         }
 
         this.pptVue.initCanvas = this.__initCanvas
+        this.courseVue.computedPPTIndex = this.__computedPPTIndex
         this.pptPinned = false
         q("#ppt-pinned").setAttribute("display", "none")
         q("#ppt-pinned-off").removeAttribute("display")
@@ -382,31 +418,43 @@ ${item.zhtext}`
     return `${f.format(hour)}:${f.format(minute)}:${f.format(second)}`
   }
 
-  _createButton(text, fn, title) {
+  _createButton(text, className, fn, title) {
     const button = document.createElement("button")
     button.innerText = text
     button.title = title
+    button.className = className
     button.style.margin = "1.5px"
     button.addEventListener("click", fn)
     return button
   }
 
-  _downloadFile(url, filename) {
-    const a = document.createElement("a")
-    a.href = url
-    a.download = filename
-    a.click()
+  _downloadSmallCrossOriginFile(url, filename) {
+    fetch(url)
+      .then((resp) => resp.blob())
+      .then((blob) => this._saveBlobToFile(blob, filename))
+      .catch((e) => alert(`下载失败：${e}`))
   }
 
   _isVueReady(elem) {
     return elem !== null && "__vue__" in elem
   }
 
-  _saveTextToFile(text, filename, blobOptions) {
-    const file = new Blob([text], blobOptions)
-    const url = URL.createObjectURL(file)
-    this._downloadFile(url, filename)
-    URL.revokeObjectURL(file)
+  _saveBlobToFile(blob, filename) {
+    const url = URL.createObjectURL(blob)
+    this._triggerDownload(url, filename)
+    URL.revokeObjectURL(url)
+  }
+
+  _saveTextToFile(text, filename) {
+    const blob = new Blob([text])
+    this._saveBlobToFile(blob, filename)
+  }
+
+  _triggerDownload(url, filename) {
+    const a = document.createElement("a")
+    a.href = url
+    a.download = filename
+    a.click()
   }
 }
 
