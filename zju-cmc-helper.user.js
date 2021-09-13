@@ -3,7 +3,7 @@
 // @description  对智云课堂页面的一些功能增强
 // @namespace    https://github.com/CoolSpring8/userscript
 // @supportURL   https://github.com/CoolSpring8/userscript/issues
-// @version      0.4.0
+// @version      0.5.0
 // @author       CoolSpring
 // @license      MIT
 // @match        *://livingroom.cmc.zju.edu.cn/*
@@ -12,8 +12,6 @@
 // @run-at       document-end
 // ==/UserScript==
 
-const IS_REMOVING_MASK = true
-const ENABLE_ENHANCE_PPT = true
 const M3U_EXTGRP_NAME = "ZJU-CMC"
 
 const querySelector = (
@@ -28,37 +26,37 @@ class CmcHelper {
       {
         name: "重新加载播放器",
         className: "cmc-helper-reload-player",
-        func: this.reloadPlayer.bind(this),
+        fn: this.reloadPlayer.bind(this),
         description: "播放卡住了点这个",
       },
       {
         name: "获取当前视频地址",
         className: "cmc-helper-get-current-video-url",
-        func: this.getCurrentVideoURL.bind(this),
+        fn: this.getCurrentVideoURL.bind(this),
         description: "回放和直播中均可用",
       },
       {
         name: "生成字幕",
         className: "cmc-helper-generate-srt",
-        func: this.generateSRT.bind(this),
+        fn: this.generateSRT.bind(this),
         description: "可供本地播放器使用。不太靠谱的样子",
       },
       {
         name: "下载课件",
+        disabled: true,
         className: "cmc-helper-download-material",
-        func: this.downloadMaterial.bind(this),
+        fn: this.downloadMaterial.bind(this),
         description: "包含截图和语音识别结果的文档",
       },
       {
         name: "生成播放列表",
+        disabled: true,
         className: "cmc-helper-generate-m3u",
-        func: this.generateM3U.bind(this),
+        fn: this.generateM3U.bind(this),
         description: "可以在本地播放器中使用的m3u文件。也许期末很实用",
       },
     ]
-  }
 
-  init() {
     const _init = () => {
       if (this.loaded) {
         return
@@ -85,32 +83,17 @@ class CmcHelper {
       }
 
       const helperToolbar = document.createElement("div")
-      for (const { name, className, func, description } of this.features) {
-        helperToolbar.append(
-          this._createButton(name, className, func, description)
-        )
-      }
+      this.features.forEach((feature) =>
+        helperToolbar.append(this._createButton(feature))
+      )
       helperToolbar.style.display = "flex"
       helperToolbar.style.marginRight = "1.5px"
 
-      // 临时提示 start
-      // 目前视频所在CDN开启了鉴权，但只有当次课的视频地址带有auth_key
-      // https://help.aliyun.com/document_detail/85113.htm
-      helperToolbar.children[4].disabled = true
-      helperToolbar.children[4].title = "由于智云课堂更新，暂不可用"
-      // 临时提示 end
+      const originalToolbar = querySelector(".course-info__header—toolbar")
+      originalToolbar.prepend(helperToolbar)
 
-      const rawToolbar = querySelector(".course-info__header—toolbar")
-      rawToolbar.prepend(helperToolbar)
-
-      if (IS_REMOVING_MASK) {
-        this.removeMaskOnce()
-      }
-
-      if (ENABLE_ENHANCE_PPT) {
-        this.enablePPTEnhance()
-      }
-
+      this.removeMaskOnce()
+      this.enablePPTEnhance()
       this.enableSpeechEnhance()
 
       this.loaded = true
@@ -141,56 +124,39 @@ class CmcHelper {
 
   enablePPTEnhance() {
     const _init = () => {
-      this.pptVue = this.pptVue || querySelector(".ppt-wrapper").__vue__
+      this.pptVue = this.pptVue || querySelector(".ppt_container").__vue__
 
       // feat: 允许PPT直接跳转到特定页码
-      const pageElem = querySelector(".ppt-pagination-item > span:first-child")
-      pageElem.contentEditable = true
+      const slider = document.createElement("input")
+      slider.type = "range"
+      slider.name = "ppt-index"
+      slider.min = 1
+      slider.max = this.pptVue.pptList.length
+      slider.value = this.pptVue.currentPPTIdx + 1
+      // TODO：和实际的页码保持同步
+      slider.style.height = "16px"
+      slider.style.margin = "-10px 0"
+      slider.style.zIndex = 1
 
-      querySelector(".ppt-pagination-item").style.cursor = "default"
-      pageElem.style.cursor = "text"
-      pageElem.style.border = "0.6px solid #999"
-      pageElem.style.borderRadius = "3px"
-      pageElem.style.padding = "3.5px"
-
-      pageElem.addEventListener("mouseover", (e) => {
-        e.currentTarget.style.borderColor = "#b6b6b6"
+      slider.addEventListener("input", (e) => {
+        this.pptVue.currentPPTIdx = Number(e.currentTarget.value - 1)
       })
 
-      pageElem.addEventListener("mouseout", (e) => {
-        e.currentTarget.style.borderColor = "#999"
-      })
-
-      pageElem.addEventListener("keydown", (e) => {
-        if (e.key === "Enter") {
-          // 防止输入框内出现换行
-          e.preventDefault()
-          e.currentTarget.blur()
-        }
-        // workaround: 如果把内容删空，可能会导致此处数字不再同步，原因未知
-        // 然而目前仍然可以通过剪切等方式删空
-        if (
-          (e.key === "Backspace" || e.key === "Delete") &&
-          e.currentTarget.textContent.length === 1
-        ) {
-          e.preventDefault()
-        }
-      })
-
-      pageElem.addEventListener("blur", (e) => {
-        this.pptVue.setPPTpage(Number(e.currentTarget.textContent))
-      })
+      querySelector("#ppt").after(slider)
 
       // feat: 避免白色背景PPT切换页码时出现闪烁
       querySelector("#ppt_canvas").getContext("2d").clearRect = () => {}
 
       // feat: 允许禁用PPT跟随
+      // TODO：现在官方提供了lockPPTFlag，研究此功能是否已可被替代
       const t = document.createElement("div")
       t.className = "ppt-thumbtack"
       t.title = "不自动跳转到PPT最新一页"
-      t.style.display = "flex"
+      t.style.display = "inline"
+      t.style.verticalAlign = "middle"
       t.style.cursor = "pointer"
       t.style.marginRight = "20px"
+      t.style.color = "#fff"
 
       // icons from tabler-icons.io, licensed under MIT
       // https://github.com/tabler/tabler-icons/blob/master/LICENSE
@@ -241,20 +207,20 @@ class CmcHelper {
         q("#ppt-pinned-off").removeAttribute("display")
       })
 
-      querySelector(".ppt-switch-button").prepend(t)
+      querySelector(".ppt_page_btn").prepend(t)
     }
 
     // 因为每次大小窗口切换时部分页面元素都会被重新创建，所以需要再次修改
     const observer = new MutationObserver((mutations) => {
-      for (const m of mutations) {
-        if (
-          m.type === "childList" &&
-          Array.from(m.addedNodes).filter((n) => n.className === "ppt-wrapper")
-            .length !== 0
-        ) {
-          _init()
-        }
-      }
+      mutations
+        .filter(
+          (mutation) =>
+            mutation.type === "childList" &&
+            [...mutation.addedNodes].find(
+              (node) => node.className === "ppt_container"
+            ) !== undefined
+        )
+        .forEach(_init)
     })
 
     observer.observe(querySelector(".course-info__main"), { childList: true })
@@ -384,14 +350,17 @@ ${item.zhtext}`
     this.playerVue.initPlayer()
     setTimeout(() => {
       this.playerVue.player.seekPlay(time)
-      if (IS_REMOVING_MASK) {
-        this.removeMaskOnce()
-      }
+      this.removeMaskOnce()
     }, 500)
   }
 
   removeMaskOnce() {
-    this.playerVue.player.setMask({})
+    // this.playerVue.player.setMask({}) // not working in Firefox
+    try {
+      querySelector(".expand-mask").remove()
+    } catch (e) {
+      console.log(`[CmcHelper] ${e}`)
+    }
   }
 
   // there may be some better solutions
@@ -418,10 +387,11 @@ ${item.zhtext}`
     return `${f.format(hour)}:${f.format(minute)}:${f.format(second)}`
   }
 
-  _createButton(text, className, fn, title) {
+  _createButton({ name, disabled, className, fn, description }) {
     const button = document.createElement("button")
-    button.innerText = text
-    button.title = title
+    button.innerText = name
+    button.disabled = disabled
+    button.title = disabled ? "由于智云课堂更新，该功能暂不可用" : description
     button.className = className
     button.style.margin = "1.5px"
     button.addEventListener("click", fn)
@@ -459,6 +429,5 @@ ${item.zhtext}`
 }
 
 const cmcHelper = new CmcHelper()
-cmcHelper.init()
 // For debugging purposes
 myWindow.cmcHelper = cmcHelper
