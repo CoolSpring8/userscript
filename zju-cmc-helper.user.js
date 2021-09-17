@@ -92,7 +92,7 @@ class CmcHelper {
       const originalToolbar = querySelector(".course-info__header—toolbar")
       originalToolbar.prepend(helperToolbar)
 
-      setTimeout(this.removeMaskOnce(), 1000)
+      setTimeout(this.removeMaskOnce, 500)
       this.enablePPTEnhance()
       this.enableSpeechEnhance()
 
@@ -108,7 +108,7 @@ class CmcHelper {
   }
 
   async downloadPPTImages() {
-    const pptList = this.courseVue.pptList
+    const pptList = [...this.courseVue.pptList]
 
     const dtf = new Intl.DateTimeFormat("zh-CN", {
       year: "numeric",
