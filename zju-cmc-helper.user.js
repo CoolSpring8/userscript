@@ -3,12 +3,13 @@
 // @description  对智云课堂页面的一些功能增强
 // @namespace    https://github.com/CoolSpring8/userscript
 // @supportURL   https://github.com/CoolSpring8/userscript/issues
-// @version      0.5.0
+// @version      0.5.1
 // @author       CoolSpring
 // @license      MIT
 // @match        *://livingroom.cmc.zju.edu.cn/*
 // @match        *://classroom.zju.edu.cn/*
 // @grant        none
+// @require      https://cdn.jsdelivr.net/npm/client-zip@2.0.0/worker.js
 // @run-at       document-end
 // ==/UserScript==
 
@@ -42,11 +43,10 @@ class CmcHelper {
         description: "可供本地播放器使用。不太靠谱的样子",
       },
       {
-        name: "下载课件",
-        disabled: true,
-        className: "cmc-helper-download-material",
-        fn: this.downloadMaterial.bind(this),
-        description: "包含截图和语音识别结果的文档",
+        name: "打包下载PPT图片",
+        className: "cmc-helper-download-ppt-images",
+        fn: this.downloadPPTImages.bind(this),
+        description: "如题",
       },
       {
         name: "生成播放列表",
@@ -92,7 +92,7 @@ class CmcHelper {
       const originalToolbar = querySelector(".course-info__header—toolbar")
       originalToolbar.prepend(helperToolbar)
 
-      this.removeMaskOnce()
+      setTimeout(this.removeMaskOnce(), 1000)
       this.enablePPTEnhance()
       this.enableSpeechEnhance()
 
@@ -107,19 +107,35 @@ class CmcHelper {
     requestIdleCallback(_init)
   }
 
-  downloadMaterial() {
-    const info = JSON.parse(this.courseVue.liveInfo.sub_content).download
-      .ppt_trans
+  async downloadPPTImages() {
+    const pptList = this.courseVue.pptList
 
-    const filename = info.file_name
-    // 原地址不可用
-    // 可能是暂时的
-    const url = info.path_name.replace(
-      "yjsource.cmc.zju.edu.cn/",
-      "yjapi.cmc.zju.edu.cn/sourceapi/"
-    )
+    const dtf = new Intl.DateTimeFormat("zh-CN", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: false,
+    })
+    // eslint-disable-next-line no-undef
+    const blob = await downloadZip(
+      this._lazyFetch(
+        pptList.map((ppt) => ppt.imgSrc.replace(/^http:/, "https:")),
+        (resp, url) => {
+          const [filename_without_ext, ext] = this._splitFilenameFromURL(url)
+          const p = dtf.formatToParts(new Date(Number(filename_without_ext)))
+          return {
+            input: resp,
+            name: `${p[0].value}-${p[2].value}-${p[4].value}_${p[6].value}-${p[8].value}-${p[10].value}.${ext}`,
+          }
+        }
+      )
+    ).blob()
+    const archiveFilename = document.title
 
-    this._downloadSmallCrossOriginFile(url, filename)
+    this._saveBlobToFile(blob, archiveFilename)
   }
 
   enablePPTEnhance() {
@@ -310,7 +326,7 @@ ${menuData
 
   generateSRT() {
     const url = this.playerVue.player.playervars.url
-    const filename_without_ext = url.split("/").pop().split(".")[0]
+    const [filename_without_ext] = this._splitFilenameFromURL(url)
 
     // FIXME: a workaround for "Error: Permission denied to access object" in Firefox + Greasemonkey env
     const data = [...this.courseVue.videoTransContent]
@@ -359,7 +375,7 @@ ${item.zhtext}`
     try {
       querySelector(".expand-mask").remove()
     } catch (e) {
-      console.log(`[CmcHelper] ${e}`)
+      console.error(`[CmcHelper] ${e}`)
     }
   }
 
@@ -391,7 +407,9 @@ ${item.zhtext}`
     const button = document.createElement("button")
     button.innerText = name
     button.disabled = disabled
-    button.title = disabled ? "由于智云课堂更新，该功能暂不可用" : description
+    button.title = disabled
+      ? "由于智云课堂系统升级，该功能暂不可用"
+      : description
     button.className = className
     button.style.margin = "1.5px"
     button.addEventListener("click", fn)
@@ -402,11 +420,23 @@ ${item.zhtext}`
     fetch(url)
       .then((resp) => resp.blob())
       .then((blob) => this._saveBlobToFile(blob, filename))
-      .catch((e) => alert(`下载失败：${e}`))
+      .catch((e) => alert(`[CmcHelper] 下载失败：${e}`))
   }
 
   _isVueReady(elem) {
     return elem !== null && "__vue__" in elem
+  }
+
+  // TODO: handle errors
+  async *_lazyFetch(urls, respCallback) {
+    for (const url of urls) {
+      try {
+        const resp = await fetch(url)
+        yield respCallback(resp, url)
+      } catch (e) {
+        console.error(`[CmcHelper] ${e}`)
+      }
+    }
   }
 
   _saveBlobToFile(blob, filename) {
@@ -418,6 +448,14 @@ ${item.zhtext}`
   _saveTextToFile(text, filename) {
     const blob = new Blob([text])
     this._saveBlobToFile(blob, filename)
+  }
+
+  _splitFilenameFromURL(url) {
+    const filename = new URL(url).pathname.split("/").pop()
+    const tmp = filename.split(".")
+    const ext = tmp.pop()
+    const filename_without_ext = tmp.join(".")
+    return [filename_without_ext, ext]
   }
 
   _triggerDownload(url, filename) {
