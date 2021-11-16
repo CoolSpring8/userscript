@@ -3,7 +3,7 @@
 // @description  对智云课堂页面的一些功能增强
 // @namespace    https://github.com/CoolSpring8/userscript
 // @supportURL   https://github.com/CoolSpring8/userscript/issues
-// @version      0.5.1
+// @version      0.5.2
 // @author       CoolSpring
 // @license      MIT
 // @match        *://livingroom.cmc.zju.edu.cn/*
@@ -15,8 +15,35 @@
 
 const M3U_EXTGRP_NAME = "ZJU-CMC"
 
+/* polyfill/shim begin */
+
+// requestIdleCallback, for Safari
+// source: https://github.com/behnammodi/polyfill/blob/master/window.polyfill.js
+if (!window.requestIdleCallback) {
+  window.requestIdleCallback = function (callback, options) {
+    var options = options || {}
+    var relaxation = 1
+    var timeout = options.timeout || relaxation
+    var start = performance.now()
+    return setTimeout(function () {
+      callback({
+        get didTimeout() {
+          return options.timeout
+            ? false
+            : performance.now() - start - relaxation > timeout
+        },
+        timeRemaining: function () {
+          return Math.max(0, relaxation + (performance.now() - start))
+        },
+      })
+    }, relaxation)
+  }
+}
+
+/* polyfill/shim end */
+
 const querySelector = (
-  window.wrappedJSObject.document || document
+  window.wrappedJSObject?.document || document
 ).querySelector.bind(document)
 const myWindow = window.wrappedJSObject || window
 
