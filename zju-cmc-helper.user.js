@@ -3,7 +3,7 @@
 // @description  对智云课堂页面的一些功能增强
 // @namespace    https://github.com/CoolSpring8/userscript
 // @supportURL   https://github.com/CoolSpring8/userscript/issues
-// @version      0.5.2
+// @version      0.5.3
 // @author       CoolSpring
 // @license      MIT
 // @match        *://livingroom.cmc.zju.edu.cn/*
@@ -65,9 +65,16 @@ class CmcHelper {
       },
       {
         name: "生成字幕",
+        hidden: true,
         className: "cmc-helper-generate-srt",
         fn: this.generateSRT.bind(this),
         description: "可供本地播放器使用。不太靠谱的样子",
+      },
+      {
+        name: "导出语音识别内容",
+        className: "cmc-helper-export-speech-text",
+        fn: this.exportSpeechText.bind(this),
+        description: "如题",
       },
       {
         name: "打包下载PPT图片",
@@ -78,6 +85,7 @@ class CmcHelper {
       {
         name: "生成播放列表",
         disabled: true,
+        hidden: true,
         className: "cmc-helper-generate-m3u",
         fn: this.generateM3U.bind(this),
         description: "可以在本地播放器中使用的m3u文件。也许期末很实用",
@@ -322,6 +330,23 @@ class CmcHelper {
     querySelector(".choose-item").prepend(d)
   }
 
+  exportSpeechText() {
+    window.open(
+      URL.createObjectURL(
+        new File(
+          [
+            Array.from(document.querySelectorAll(".item-origin"))
+              .map((e) => e.textContent)
+              .join("\n"),
+          ],
+          document.title,
+          { type: "text/plain;charset=utf-8" }
+        )
+      ),
+      "_blank"
+    )
+  }
+
   generateM3U() {
     const courseName = this.courseVue.courseName
     const teacherName = this.courseVue.teacherName
@@ -430,7 +455,7 @@ ${item.zhtext}`
     return `${f.format(hour)}:${f.format(minute)}:${f.format(second)}`
   }
 
-  _createButton({ name, disabled, className, fn, description }) {
+  _createButton({ name, disabled, hidden, className, fn, description }) {
     const button = document.createElement("button")
     button.innerText = name
     button.disabled = disabled
@@ -439,6 +464,9 @@ ${item.zhtext}`
       : description
     button.className = className
     button.style.margin = "1.5px"
+    if (hidden) {
+      button.style.display = "none"
+    }
     button.addEventListener("click", fn)
     return button
   }
