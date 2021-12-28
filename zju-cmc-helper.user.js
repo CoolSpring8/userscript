@@ -3,7 +3,7 @@
 // @description  对智云课堂页面的一些功能增强
 // @namespace    https://github.com/CoolSpring8/userscript
 // @supportURL   https://github.com/CoolSpring8/userscript/issues
-// @version      0.5.3
+// @version      0.5.4
 // @author       CoolSpring
 // @license      MIT
 // @match        *://livingroom.cmc.zju.edu.cn/*
@@ -335,7 +335,12 @@ class CmcHelper {
       URL.createObjectURL(
         new File(
           [
-            Array.from(document.querySelectorAll(".item-origin"))
+            [
+              ...document.querySelectorAll(".item-origin"),
+              ...[...document.querySelectorAll(".video-trans-item")].map(
+                (e) => e.firstChild
+              ),
+            ]
               .map((e) => e.textContent)
               .join("\n"),
           ],
