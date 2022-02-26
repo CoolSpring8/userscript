@@ -3,7 +3,7 @@
 // @description  对智云课堂页面的一些功能增强
 // @namespace    https://github.com/CoolSpring8/userscript
 // @supportURL   https://github.com/CoolSpring8/userscript/issues
-// @version      0.5.4
+// @version      0.5.5
 // @author       CoolSpring
 // @license      MIT
 // @match        *://livingroom.cmc.zju.edu.cn/*
@@ -156,11 +156,11 @@ class CmcHelper {
     })
     // eslint-disable-next-line no-undef
     const blob = await downloadZip(
-      this._lazyFetch(
+      this._batchFetch(
         pptList.map((ppt) => ppt.imgSrc.replace(/^http:/, "https:")),
         (resp, url) => {
           const [filename_without_ext, ext] = this._splitFilenameFromURL(url)
-          const p = dtf.formatToParts(new Date(Number(filename_without_ext)))
+          const p = dtf.formatToParts(Number(filename_without_ext))
           return {
             input: resp,
             name: `${p[0].value}-${p[2].value}-${p[4].value}_${p[6].value}-${p[8].value}-${p[10].value}.${ext}`,
@@ -460,6 +460,14 @@ ${item.zhtext}`
     return `${f.format(hour)}:${f.format(minute)}:${f.format(second)}`
   }
 
+  _batchFetch(urls, processFn) {
+    return urls.map((url) =>
+      fetch(url)
+        .then((resp) => processFn(resp, url))
+        .catch((e) => console.error(`[CmcHelper] ${e}`))
+    )
+  }
+
   _createButton({ name, disabled, hidden, className, fn, description }) {
     const button = document.createElement("button")
     button.innerText = name
@@ -485,18 +493,6 @@ ${item.zhtext}`
 
   _isVueReady(elem) {
     return elem !== null && "__vue__" in elem
-  }
-
-  // TODO: handle errors
-  async *_lazyFetch(urls, respCallback) {
-    for (const url of urls) {
-      try {
-        const resp = await fetch(url)
-        yield respCallback(resp, url)
-      } catch (e) {
-        console.error(`[CmcHelper] ${e}`)
-      }
-    }
   }
 
   _saveBlobToFile(blob, filename) {
