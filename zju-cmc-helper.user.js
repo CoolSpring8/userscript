@@ -3,7 +3,7 @@
 // @description  对智云课堂页面的一些功能增强
 // @namespace    https://github.com/CoolSpring8/userscript
 // @supportURL   https://github.com/CoolSpring8/userscript/issues
-// @version      0.5.6
+// @version      0.5.7
 // @author       CoolSpring
 // @license      MIT
 // @match        *://livingroom.cmc.zju.edu.cn/*
@@ -18,25 +18,9 @@ const M3U_EXTGRP_NAME = "ZJU-CMC"
 /* polyfill/shim begin */
 
 // requestIdleCallback, for Safari
-// source: https://github.com/behnammodi/polyfill/blob/master/window.polyfill.js
 if (!window.requestIdleCallback) {
-  window.requestIdleCallback = function (callback, options) {
-    var options = options || {}
-    var relaxation = 1
-    var timeout = options.timeout || relaxation
-    var start = performance.now()
-    return setTimeout(function () {
-      callback({
-        get didTimeout() {
-          return options.timeout
-            ? false
-            : performance.now() - start - relaxation > timeout
-        },
-        timeRemaining: function () {
-          return Math.max(0, relaxation + (performance.now() - start))
-        },
-      })
-    }, relaxation)
+  window.requestIdleCallback = function (callback) {
+    return setTimeout(callback, 50)
   }
 }
 
@@ -134,7 +118,6 @@ class CmcHelper {
       this.loaded = true
 
       console.log(
-        // eslint-disable-next-line no-undef
         `[CmcHelper] ${GM.info.script.name} v${GM.info.script.version} has been successfully loaded.`
       )
     }
@@ -157,13 +140,18 @@ class CmcHelper {
     // eslint-disable-next-line no-undef
     const blob = await downloadZip(
       this._batchFetch(
-        pptList.map((ppt) => ppt.imgSrc.replace(/^http:/, "https:")),
-        (resp, url) => {
+        pptList.map((ppt) => ({
+          url: ppt.imgSrc.replace(/^http:/, "https:"),
+          info: { timeInVideo: ppt.switchTime },
+        })),
+        (resp, url, info) => {
           const [filename_without_ext, ext] = this._splitFilenameFromURL(url)
           const p = dtf.formatToParts(Number(filename_without_ext))
           return {
             input: resp,
-            name: `${p[0].value}-${p[2].value}-${p[4].value}_${p[6].value}-${p[8].value}-${p[10].value}.${ext}`,
+            name: `${p[0].value}-${p[2].value}-${p[4].value}_${p[6].value}-${
+              p[8].value
+            }-${p[10].value}__${info.timeInVideo.replaceAll(":", "-")}.${ext}`,
           }
         }
       )
@@ -460,10 +448,10 @@ ${item.zhtext}`
     return `${f.format(hour)}:${f.format(minute)}:${f.format(second)}`
   }
 
-  _batchFetch(urls, processFn) {
-    return urls.map((url) =>
+  _batchFetch(tasks, processFn) {
+    return tasks.map(({ url, info }) =>
       fetch(url)
-        .then((resp) => processFn(resp, url))
+        .then((resp) => processFn(resp, url, info))
         .catch((e) => console.error(`[CmcHelper] ${e}`))
     )
   }
