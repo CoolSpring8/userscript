@@ -3,13 +3,13 @@
 // @description  对智云课堂页面的一些功能增强
 // @namespace    https://github.com/CoolSpring8/userscript
 // @supportURL   https://github.com/CoolSpring8/userscript/issues
-// @version      0.5.7
+// @version      0.5.8
 // @author       CoolSpring
 // @license      MIT
 // @match        *://livingroom.cmc.zju.edu.cn/*
 // @match        *://classroom.zju.edu.cn/*
 // @grant        none
-// @require      https://cdn.jsdelivr.net/npm/client-zip@2.0.0/worker.js
+// @require      https://unpkg.com/client-zip@2.1.0/worker.js
 // @run-at       document-end
 // ==/UserScript==
 
