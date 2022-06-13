@@ -1,16 +1,16 @@
 /* ==UserStyle==
 @name         Material-CC98
 @namespace    github.com/CoolSpring8/userscript
-@version      0.1.1
-@description  Material Design风格的样式微调～部分代码来自material-ui.com。
+@version      0.1.2
+@description  Material Design风格的样式微调，借鉴了Material UI组件库
 @author       CoolSpring
 @supportURL   https://github.com/CoolSpring8/userscript/issues
 @license      MIT
 ==/UserStyle== */
 @-moz-document domain("www.cc98.org") {
   #root {
-    --color-main: rgb(177, 211, 150);
-    --color-main-transparent: rgba(177, 211, 150, 0.8);
+    --color-main: rgb(98, 150, 211);
+    --color-main-transparent: rgba(235, 249, 251, 0.8);
     --color-divider: rgba(0, 0, 0, 0.12);
     --box-shadow-card: 0px 2px 1px -1px rgba(0, 0, 0, 0.2),
       0px 1px 1px 0px rgba(0, 0, 0, 0.14), 0px 1px 3px 0px rgba(0, 0, 0, 0.12);
@@ -47,7 +47,7 @@
     border-top: none;
   }
 
-  /* 参考自https://vercel.com/blog。该网页的样式中的position是sticky，但我暂时没法在CC98页面上完成同样效果，就改成了fixed */
+  /* 参考自https://vercel.com/blog */
   .topBar {
     position: fixed;
     top: 0;
@@ -84,6 +84,35 @@
     margin-left: -1px;
     border-top-left-radius: 0;
     border-bottom-left-radius: 0;
+  }
+
+  .topBarLogo,
+  .topBarCC98,
+  .topBarText,
+  .topBarUserName {
+    filter: invert(1);
+  }
+
+  .topBarUserImg {
+    display: none;
+  }
+
+  .topBarUserName {
+    font-size: 0;
+  }
+
+  .topBarUserName::after {
+    font-size: 1rem;
+    content: "My CC98";
+  }
+
+  .topBarUserCenter {
+    margin-left: 3rem;
+  }
+
+  .topBarBell {
+    color: #000;
+    background-color: #fff;
   }
 }
 
@@ -229,7 +258,8 @@ url-prefix("https://www.cc98.org/search")
     border-radius: 4px 0 0 4px;
   }
 
-  .userMessage-userName, .userMessage-left > div:not(.column) > div:first-child {
+  .userMessage-userName,
+  .userMessage-left > div:not(.column) > div:first-child {
     font-weight: normal !important;
   }
 
@@ -247,7 +277,8 @@ url-prefix("https://www.cc98.org/search")
 
   img[src^="/static/images/ac/"],
   img[src^="/static/images/ms/"],
-  img[src^="/static/images/em/"] {
+  img[src^="/static/images/em/"],
+  img[src^="/static/images/CC98/"] {
     width: 3rem;
     height: auto;
     margin-bottom: 1rem;
